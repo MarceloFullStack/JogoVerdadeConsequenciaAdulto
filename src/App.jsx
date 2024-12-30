@@ -1,19 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Plus, X, Settings, Info, Linkedin, MessageCircle, Wine } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label"; // Ensure this path is correct
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Wine, Plus, X, Settings, Info, Linkedin, MessageCircle } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 const QP_PERGUNTAS_PADRAO = [
   "Qual é a sua fantasia sexual mais secreta?",
@@ -245,8 +239,6 @@ const InfoCreditos = () => (
     </div>
 );
 
-// Remove/comment out the ContatosFlutuantes component
-
 const ConfiguracaoJogo = ({ 
     perguntas, 
     consequencias, 
@@ -254,96 +246,92 @@ const ConfiguracaoJogo = ({
     setPerguntas,
     setConsequencias,
     setConsequenciasObrigatorias,
-    modoQuatroParedes, // Add this prop
+    modoQuatroParedes, 
     percentualObrigatorio,
     setPercentualObrigatorio,
 }) => {
     const [novoItem, setNovoItem] = useState('');
     const [tipoSelecionado, setTipoSelecionado] = useState('perguntas');
-    const [qpPerguntas, setQpPerguntas] = useState(QP_PERGUNTAS_PADRAO);
-    const [qpConsequencias, setQpConsequencias] = useState(QP_CONSEQUENCIAS_PADRAO);
-    const [qpObrigatorias, setQpObrigatorias] = useState(QP_CONSEQUENCIAS_OBRIGATORIAS);
+    const [listaAtual, setListaAtual] = useState({
+        perguntas: [],
+        consequencias: [],
+        obrigatorias: []
+    });
+
+    useEffect(() => {
+        carregarLista();
+    }, [modoQuatroParedes]);
+
+    const carregarLista = () => {
+        const storagePrefix = modoQuatroParedes ? 'qp' : 'bar';
+        const defaults = modoQuatroParedes ? 
+            { perguntas: QP_PERGUNTAS_PADRAO, consequencias: QP_CONSEQUENCIAS_PADRAO, obrigatorias: QP_CONSEQUENCIAS_OBRIGATORIAS } :
+            { perguntas: PERGUNTAS_PADRAO, consequencias: CONSEQUENCIAS_PADRAO, obrigatorias: CONSEQUENCIAS_OBRIGATORIAS };
+
+        const storedData = {
+            perguntas: JSON.parse(localStorage.getItem(`${storagePrefix}Perguntas`)) || defaults.perguntas,
+            consequencias: JSON.parse(localStorage.getItem(`${storagePrefix}Consequencias`)) || defaults.consequencias,
+            obrigatorias: JSON.parse(localStorage.getItem(`${storagePrefix}Obrigatorias`)) || defaults.obrigatorias
+        };
+
+        setListaAtual(storedData);
+        setPerguntas(storedData.perguntas);
+        setConsequencias(storedData.consequencias);
+        setConsequenciasObrigatorias(storedData.obrigatorias);
+    };
+
+    const salvarLista = (novaLista) => {
+        const storagePrefix = modoQuatroParedes ? 'qp' : 'bar';
+        Object.entries(novaLista).forEach(([tipo, items]) => {
+            localStorage.setItem(`${storagePrefix}${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`, JSON.stringify(items));
+        });
+        setListaAtual(novaLista);
+        setPerguntas(novaLista.perguntas);
+        setConsequencias(novaLista.consequencias);
+        setConsequenciasObrigatorias(novaLista.obrigatorias);
+    };
 
     const adicionarItem = () => {
         if (!novoItem.trim()) return;
-        
-        if (modoQuatroParedes) {
-            switch(tipoSelecionado) {
-                case 'perguntas':
-                    setQpPerguntas([...qpPerguntas, novoItem.trim()]);
-                    break;
-                case 'consequencias':
-                    setQpConsequencias([...qpConsequencias, novoItem.trim()]);
-                    break;
-                case 'obrigatorias':
-                    setQpObrigatorias([...qpObrigatorias, novoItem.trim()]);
-                    break;
-            }
-        } else {
-            switch(tipoSelecionado) {
-                case 'perguntas':
-                    setPerguntas([...perguntas, novoItem.trim()]);
-                    break;
-                case 'consequencias':
-                    setConsequencias([...consequencias, novoItem.trim()]);
-                    break;
-                case 'obrigatorias':
-                    setConsequenciasObrigatorias([...consequenciasObrigatorias, novoItem.trim()]);
-                    break;
-            }
-        }
+        const novaLista = {
+            ...listaAtual,
+            [tipoSelecionado]: [...listaAtual[tipoSelecionado], novoItem.trim()]
+        };
+        salvarLista(novaLista);
         setNovoItem('');
     };
 
     const removerItem = (tipo, index) => {
-        if (modoQuatroParedes) {
-            switch(tipo) {
-                case 'perguntas':
-                    setQpPerguntas(qpPerguntas.filter((_, i) => i !== index));
-                    break;
-                case 'consequencias':
-                    setQpConsequencias(qpConsequencias.filter((_, i) => i !== index));
-                    break;
-                case 'obrigatorias':
-                    setQpObrigatorias(qpObrigatorias.filter((_, i) => i !== index));
-                    break;
-            }
-        } else {
-            switch(tipo) {
-                case 'perguntas':
-                    setPerguntas(perguntas.filter((_, i) => i !== index));
-                    break;
-                case 'consequencias':
-                    setConsequencias(consequencias.filter((_, i) => i !== index));
-                    break;
-                case 'obrigatorias':
-                    setConsequenciasObrigatorias(consequenciasObrigatorias.filter((_, i) => i !== index));
-                    break;
-            }
-        }
+        const novaLista = {
+            ...listaAtual,
+            [tipo]: listaAtual[tipo].filter((_, i) => i !== index)
+        };
+        salvarLista(novaLista);
     };
 
-    const listasAtivas = modoQuatroParedes 
-        ? { 
-            perguntas: qpPerguntas, 
-            consequencias: qpConsequencias, 
-            obrigatorias: qpObrigatorias 
-        }
-        : { 
-            perguntas, 
-            consequencias, 
-            consequenciasObrigatorias 
-        };
+    const resetarParaDefault = () => {
+        const defaults = modoQuatroParedes ? 
+            { perguntas: QP_PERGUNTAS_PADRAO, consequencias: QP_CONSEQUENCIAS_PADRAO, obrigatorias: QP_CONSEQUENCIAS_OBRIGATORIAS } :
+            { perguntas: PERGUNTAS_PADRAO, consequencias: CONSEQUENCIAS_PADRAO, obrigatorias: CONSEQUENCIAS_OBRIGATORIAS };
+
+        const storagePrefix = modoQuatroParedes ? 'qp' : 'bar';
+        Object.keys(defaults).forEach(tipo => {
+            localStorage.removeItem(`${storagePrefix}${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+        });
+
+        salvarLista(defaults);
+    };
 
     return (
         <div className="space-y-6 text-purple-100">
-            <div className="mb-4">
-                <h3 className="text-lg font-semibold text-pink-400">
-                    Modo: {modoQuatroParedes ? "Quatro Paredes 🔥" : "Barzinho 🍺"}
-                </h3>
+            <div className="text-xl font-semibold text-pink-400 mb-4">
+                Modo: {modoQuatroParedes ? 'Quatro Paredes' : 'Barzinho'}
             </div>
 
-            <div className="space-y-4">
+            <div className="mb-4">
+                <h3 className="text-lg font-semibold text-pink-400">
+                    Adicionar novo item
+                </h3>
                 <div className="flex gap-2">
                     <Input
                         value={novoItem}
@@ -370,31 +358,37 @@ const ConfiguracaoJogo = ({
             </div>
 
             <div className="grid grid-cols-1 gap-6">
-                {Object.entries(listasAtivas).map(([tipo, lista]) => (
+                {Object.entries(listaAtual).map(([tipo, items]) => (
                     <div key={tipo} className="space-y-2">
                         <h3 className="font-semibold text-pink-400">
                             {tipo.charAt(0).toUpperCase() + tipo.slice(1)}:
                         </h3>
                         <ScrollArea className="h-32 border border-purple-500/30 rounded-md p-2">
-                            {lista.map((item, index) => (
-                                <div key={index} className="flex justify-between items-center py-1">
-                                    <span className="text-sm">{item}</span>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => removerItem(tipo, index)}
-                                        className="text-purple-400 hover:text-purple-100"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </Button>
+                            {items && items.length > 0 ? (
+                                items.map((item, index) => (
+                                    <div key={index} className="flex justify-between items-center py-1">
+                                        <span className="text-sm">{item}</span>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => removerItem(tipo, index)}
+                                            className="text-purple-400 hover:text-purple-100"
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-purple-400 text-sm italic">
+                                    Nenhum item cadastrado
                                 </div>
-                            ))}
+                            )}
                         </ScrollArea>
                     </div>
                 ))}
             </div>
+
             <div className="space-y-4">
-                {/* ...existing controls... */}
                 <div className="flex items-center gap-4">
                     <Label htmlFor="percentual">Percentual Obrigatório:</Label>
                     <Input
@@ -412,6 +406,10 @@ const ConfiguracaoJogo = ({
                     <span>%</span>
                 </div>
             </div>
+
+            <Button onClick={resetarParaDefault} className="bg-red-500 hover:bg-red-600">
+                Resetar para Default
+            </Button>
         </div>
     );
 };
@@ -449,18 +447,20 @@ const JogoVerdadeConsequencia = () => {
         if (jogadores.length < 2) return;
         
         setMostrarConfetes(false);
-
-        const perguntasAtuais = modoQuatroParedes ? QP_PERGUNTAS_PADRAO : perguntas;
-        const consequenciasAtuais = modoQuatroParedes ? QP_CONSEQUENCIAS_PADRAO : consequencias;
-        const consequenciasObrigatoriasAtuais = modoQuatroParedes ? QP_CONSEQUENCIAS_OBRIGATORIAS : consequenciasObrigatorias;
+        
+        const storagePrefix = modoQuatroParedes ? 'qp' : 'bar';
+        const perguntasAtuais = JSON.parse(localStorage.getItem(`${storagePrefix}Perguntas`)) || 
+            (modoQuatroParedes ? QP_PERGUNTAS_PADRAO : PERGUNTAS_PADRAO);
+        const consequenciasAtuais = JSON.parse(localStorage.getItem(`${storagePrefix}Consequencias`)) || 
+            (modoQuatroParedes ? QP_CONSEQUENCIAS_PADRAO : CONSEQUENCIAS_PADRAO);
+        const consequenciasObrigatoriasAtuais = JSON.parse(localStorage.getItem(`${storagePrefix}Obrigatorias`)) || 
+            (modoQuatroParedes ? QP_CONSEQUENCIAS_OBRIGATORIAS : CONSEQUENCIAS_OBRIGATORIAS);
 
         const jogadorPerguntador = jogadores[Math.floor(Math.random() * jogadores.length)];
         setPerguntador(jogadorPerguntador);
         
         const jogadoresDisponiveis = jogadores.filter(j => j !== jogadorPerguntador);
-        const jogadorRespondedor = jogadoresDisponiveis[
-            Math.floor(Math.random() * jogadoresDisponiveis.length)
-        ];
+        const jogadorRespondedor = jogadoresDisponiveis[Math.floor(Math.random() * jogadoresDisponiveis.length)];
         setRespondedor(jogadorRespondedor);
 
         const ehObrigatoria = Math.random() < (percentualObrigatorio / 100);
@@ -470,18 +470,18 @@ const JogoVerdadeConsequencia = () => {
         setPerguntaSugerida(perguntaAleatoria);
         
         if (ehObrigatoria) {
-          const consequenciaObrigatoriaAleatoria = consequenciasObrigatoriasAtuais[
-              Math.floor(Math.random() * consequenciasObrigatoriasAtuais.length)
-          ];
-          setConsequenciaSugerida(consequenciaObrigatoriaAleatoria);
-          setMostrarConfetes(true);
-      } else {
-          const consequenciaAleatoria = consequenciasAtuais[
-              Math.floor(Math.random() * consequenciasAtuais.length)
-          ];
-          setConsequenciaSugerida(consequenciaAleatoria);
-      }
-  };
+            const consequenciaObrigatoriaAleatoria = consequenciasObrigatoriasAtuais[
+                Math.floor(Math.random() * consequenciasObrigatoriasAtuais.length)
+            ];
+            setConsequenciaSugerida(consequenciaObrigatoriaAleatoria);
+            setMostrarConfetes(true);
+        } else {
+            const consequenciaAleatoria = consequenciasAtuais[
+                Math.floor(Math.random() * consequenciasAtuais.length)
+            ];
+            setConsequenciaSugerida(consequenciaAleatoria);
+        }
+    };
   
   return (
       <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-pink-800 p-4 pb-20 lg:pb-4 flex items-center justify-center">
