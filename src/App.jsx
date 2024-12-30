@@ -254,7 +254,9 @@ const ConfiguracaoJogo = ({
     setPerguntas,
     setConsequencias,
     setConsequenciasObrigatorias,
-    modoQuatroParedes // Add this prop
+    modoQuatroParedes, // Add this prop
+    percentualObrigatorio,
+    setPercentualObrigatorio,
 }) => {
     const [novoItem, setNovoItem] = useState('');
     const [tipoSelecionado, setTipoSelecionado] = useState('perguntas');
@@ -391,6 +393,25 @@ const ConfiguracaoJogo = ({
                     </div>
                 ))}
             </div>
+            <div className="space-y-4">
+                {/* ...existing controls... */}
+                <div className="flex items-center gap-4">
+                    <Label htmlFor="percentual">Percentual Obrigatório:</Label>
+                    <Input
+                        type="number"
+                        id="percentual"
+                        value={percentualObrigatorio}
+                        onChange={(e) => {
+                            const valor = Math.min(Math.max(Number(e.target.value), 0), 100);
+                            setPercentualObrigatorio(valor);
+                        }}
+                        min={0}
+                        max={100}
+                        className="w-20 bg-purple-950/50 border-purple-500/30 text-purple-100"
+                    />
+                    <span>%</span>
+                </div>
+            </div>
         </div>
     );
 };
@@ -408,6 +429,7 @@ const JogoVerdadeConsequencia = () => {
     const [consequencias, setConsequencias] = useState(CONSEQUENCIAS_PADRAO);
     const [consequenciasObrigatorias, setConsequenciasObrigatorias] = useState(CONSEQUENCIAS_OBRIGATORIAS);
     const [modoQuatroParedes, setModoQuatroParedes] = useState(true);
+    const [percentualObrigatorio, setPercentualObrigatorio] = useState(20);
 
     const adicionarJogador = (evento) => {
         evento.preventDefault();
@@ -441,7 +463,7 @@ const JogoVerdadeConsequencia = () => {
         ];
         setRespondedor(jogadorRespondedor);
 
-        const ehObrigatoria = Math.random() < 0.2;
+        const ehObrigatoria = Math.random() < (percentualObrigatorio / 100);
         setConsequenciaObrigatoria(ehObrigatoria);
 
         const perguntaAleatoria = perguntasAtuais[Math.floor(Math.random() * perguntasAtuais.length)];
@@ -519,6 +541,8 @@ const JogoVerdadeConsequencia = () => {
                                       setConsequencias={setConsequencias}
                                       setConsequenciasObrigatorias={setConsequenciasObrigatorias}
                                       modoQuatroParedes={modoQuatroParedes} // Add this prop
+                                      percentualObrigatorio={percentualObrigatorio}
+                                      setPercentualObrigatorio={setPercentualObrigatorio}
                                   />
                               </DialogContent>
                           </Dialog>
